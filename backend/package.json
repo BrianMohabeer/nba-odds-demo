@@ -5,6 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "postinstall": "node node_modules/puppeteer/install.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
