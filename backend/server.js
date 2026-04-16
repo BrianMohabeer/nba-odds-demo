@@ -51,12 +51,20 @@ async function getSharedBrowser() {
 // Middleware
 // CORS configuration - allows requests from localhost and production frontend
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',           // Local development
-    'http://localhost:3001',           // Local backend testing
-    'https://*.vercel.app',            // Vercel preview deployments
-    'https://nba-odds-tracker.vercel.app', // Production frontend (update this with your actual Vercel URL)
-  ],
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://nba-odds-tracker.vercel.app', // Update with your actual Vercel URL
+    ];
+    
+    // Allow requests with no origin (like mobile apps or Postman) or from Vercel
+    if (!origin || allowedOrigins.includes(origin) || (origin && origin.includes('.vercel.app'))) {
+      callback(null, true);
+    } else {
+      callback(null, true); // For development, allow all origins
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -1064,17 +1072,17 @@ app.use((err, req, res, next) => {
 });
 
 // =================== START SERVER ===================
-app.listen(PORT, "127.0.0.1", () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("🚀 NBA Odds Tracker Backend Started!");
-  console.log(`📍 Server running on: http://localhost:${PORT}`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
-  console.log(`🏀 NBA odds: http://localhost:${PORT}/api/odds`);
-  console.log(`🏆 NBA championship: http://localhost:${PORT}/api/championship`);
-  console.log(`🔧 Available sports: http://localhost:${PORT}/api/sports`);
+  console.log(`📍 Server running on port: ${PORT}`);
+  console.log(`🏥 Health check: /health`);
+  console.log(`🏀 NBA odds: /api/odds`);
+  console.log(`🏆 NBA championship: /api/championship`);
+  console.log(`🔧 Available sports: /api/sports`);
   console.log("\n=== PLAYER PROPS (The Odds API) ===");
-  console.log(`📋 Get NBA events: http://localhost:${PORT}/api/player-props/events`);
-  console.log(`🎯 Get props for event: http://localhost:${PORT}/api/player-props/event/{eventId}`);
-  console.log(`📊 Get specific market: http://localhost:${PORT}/api/player-props/event/{eventId}/{market}`);
+  console.log(`📋 Get NBA events: /api/player-props/events`);
+  console.log(`🎯 Get props for event: /api/player-props/event/{eventId}`);
+  console.log(`📊 Get specific market: /api/player-props/event/{eventId}/{market}`);
   console.log(`⚡ Get all props (limited): http://localhost:${PORT}/api/player-props/all`);
   console.log("================================");
 
