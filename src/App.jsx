@@ -4,7 +4,7 @@ function App() {
   // ---- API URL Configuration ----
   // For deployment: Replace this URL with your backend URL
   // Example: const API_URL = 'https://nba-odds-backend.onrender.com';
-  const API_URL = 'http://localhost:3001';
+  const API_URL = 'https://nba-odds-demo-backend.onrender.com';
 
   // ---- State ----
   const [odds, setOdds] = useState([]);
