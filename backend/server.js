@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import * as cheerio from "cheerio"; // IMPORTANT: namespace import
 import puppeteer from "puppeteer-core";
-import chromium from "chrome-aws-lambda";
+import chromium from "@sparticuz/chromium";
 
 // Load environment variables
 dotenv.config();
@@ -35,7 +35,7 @@ async function getSharedBrowser() {
     sharedBrowser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath,
       headless: chromium.headless,
     });
   }
