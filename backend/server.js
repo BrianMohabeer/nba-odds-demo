@@ -3,7 +3,8 @@ import fetch from "node-fetch";
 import cors from "cors";
 import dotenv from "dotenv";
 import * as cheerio from "cheerio"; // IMPORTANT: namespace import
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 
 // Load environment variables
 dotenv.config();
@@ -32,18 +33,10 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 async function getSharedBrowser() {
   if (!sharedBrowser || !sharedBrowser.isConnected()) {
     sharedBrowser = await puppeteer.launch({
-      headless: "new",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",      // Overcome limited resource problems
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu",                 // Applicable to render.com
-        "--no-first-run",
-        "--no-zygote",
-        "--single-process",              // Required for some hosting platforms
-      ],
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
   }
   return sharedBrowser;
