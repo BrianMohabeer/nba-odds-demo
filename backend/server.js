@@ -32,14 +32,12 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 async function getSharedBrowser() {
   if (!sharedBrowser || !sharedBrowser.isConnected()) {
     sharedBrowser = await puppeteer.launch({
-      headless: true,
+      headless: "new",
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
       ],
     });
   }
@@ -957,7 +955,7 @@ async function scrapeRotowireAwardTablePuppeteer(url) {
         "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
       );
       await page.setViewport({ width: 2400, height: 900 });
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
       await new Promise(r => setTimeout(r, 2000)); // Reduced from 3s to 2s
 
     const results = await page.evaluate(() => {
