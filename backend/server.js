@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import * as cheerio from "cheerio"; // IMPORTANT: namespace import
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import chromium from "chrome-aws-lambda";
 
 // Load environment variables
 dotenv.config();
