@@ -950,8 +950,8 @@ async function scrapeRotowireAwardTablePuppeteer(url) {
         "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
       );
       await page.setViewport({ width: 2400, height: 900 });
-      await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
-      await new Promise(r => setTimeout(r, 2000)); // Reduced from 3s to 2s
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
+      await new Promise(r => setTimeout(r, 3000)); // Wait for dynamic content to load
 
     const results = await page.evaluate(() => {
       // --- Player names from column 0 ---
