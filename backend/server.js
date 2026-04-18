@@ -51,7 +51,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
-      'https://nba-odds-demo.vercel.app', // Update with your actual Vercel URL
+      'https://nba-odds-tracker.vercel.app', // Update with your actual Vercel URL
     ];
     
     // Allow requests with no origin (like mobile apps or Postman) or from Vercel
