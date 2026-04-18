@@ -33,6 +33,7 @@ async function getSharedBrowser() {
   if (!sharedBrowser || !sharedBrowser.isConnected()) {
     sharedBrowser = await puppeteer.launch({
       headless: "new",
+      protocolTimeout: 180000, // 3 minutes for protocol commands
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -862,75 +863,69 @@ app.get("/api/awards/all", async (req, res) => {
   try {
     const now = Date.now();
     
-    // Prepare all scraping tasks
-    const tasks = [];
+    // Build response object
+    const response = {};
     
-    // DPOY
+    // MVP first (fast cheerio scraper - no RAM issues)
+    const mvpUrl = "https://www.rotowire.com/betting/nba/mvp-odds.php";
+    const mvpData = await scrapeRotowireAwardTable(mvpUrl)
+      .then(data => data.length ? data : scrapeRotowireFutures("MVP"));
+    response.mvp = mvpData;
+    
+    // Batch 1: DPOY + ROTY (2 at a time to stay under 512 MB RAM)
+    const batch1 = [];
+    
     if (awardCache.dpoy.data && (now - awardCache.dpoy.timestamp) < CACHE_TTL) {
-      tasks.push(Promise.resolve({ award: 'dpoy', data: awardCache.dpoy.data }));
+      batch1.push(Promise.resolve({ award: 'dpoy', data: awardCache.dpoy.data }));
     } else {
-      tasks.push(
+      batch1.push(
         scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/defensive-player-odds.php")
           .then(data => ({ award: 'dpoy', data }))
       );
     }
     
-    // ROTY
     if (awardCache.roty.data && (now - awardCache.roty.timestamp) < CACHE_TTL) {
-      tasks.push(Promise.resolve({ award: 'roty', data: awardCache.roty.data }));
+      batch1.push(Promise.resolve({ award: 'roty', data: awardCache.roty.data }));
     } else {
-      tasks.push(
+      batch1.push(
         scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/rookie-odds.php")
           .then(data => ({ award: 'roty', data }))
       );
     }
     
-    // Sixth Man
+    const batch1Results = await Promise.all(batch1);
+    for (const result of batch1Results) {
+      response[result.award] = result.data;
+      if (result.award === 'dpoy') awardCache.dpoy = { data: result.data, timestamp: now };
+      if (result.award === 'roty') awardCache.roty = { data: result.data, timestamp: now };
+    }
+    
+    // Batch 2: Sixth Man + MIP (2 at a time to stay under 512 MB RAM)
+    const batch2 = [];
+    
     if (awardCache.sixthMan.data && (now - awardCache.sixthMan.timestamp) < CACHE_TTL) {
-      tasks.push(Promise.resolve({ award: 'sixthMan', data: awardCache.sixthMan.data }));
+      batch2.push(Promise.resolve({ award: 'sixthMan', data: awardCache.sixthMan.data }));
     } else {
-      tasks.push(
+      batch2.push(
         scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/sixth-man-odds.php")
           .then(data => ({ award: 'sixthMan', data }))
       );
     }
     
-    // MIP
     if (awardCache.mip.data && (now - awardCache.mip.timestamp) < CACHE_TTL) {
-      tasks.push(Promise.resolve({ award: 'mip', data: awardCache.mip.data }));
+      batch2.push(Promise.resolve({ award: 'mip', data: awardCache.mip.data }));
     } else {
-      tasks.push(
+      batch2.push(
         scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/improved-player-odds.php")
           .then(data => ({ award: 'mip', data }))
       );
     }
     
-    // MVP (cheerio scraper - fast)
-    const mvpUrl = "https://www.rotowire.com/betting/nba/mvp-odds.php";
-    tasks.push(
-      scrapeRotowireAwardTable(mvpUrl)
-        .then(data => data.length ? data : scrapeRotowireFutures("MVP"))
-        .then(data => ({ award: 'mvp', data }))
-    );
-    
-    // Run all scrapes in parallel
-    const results = await Promise.all(tasks);
-    
-    // Update caches and build response
-    const response = {};
-    for (const result of results) {
+    const batch2Results = await Promise.all(batch2);
+    for (const result of batch2Results) {
       response[result.award] = result.data;
-      
-      // Update cache for non-cached items
-      if (result.award === 'dpoy' && !awardCache.dpoy.data) {
-        awardCache.dpoy = { data: result.data, timestamp: now };
-      } else if (result.award === 'roty' && !awardCache.roty.data) {
-        awardCache.roty = { data: result.data, timestamp: now };
-      } else if (result.award === 'sixthMan' && !awardCache.sixthMan.data) {
-        awardCache.sixthMan = { data: result.data, timestamp: now };
-      } else if (result.award === 'mip' && !awardCache.mip.data) {
-        awardCache.mip = { data: result.data, timestamp: now };
-      }
+      if (result.award === 'sixthMan') awardCache.sixthMan = { data: result.data, timestamp: now };
+      if (result.award === 'mip') awardCache.mip = { data: result.data, timestamp: now };
     }
     
     res.json(response);
