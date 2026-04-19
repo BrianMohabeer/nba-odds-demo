@@ -860,6 +860,7 @@ app.get("/api/awards/mip", async (req, res) => {
 // =================== BATCH AWARDS ENDPOINT (PARALLEL SCRAPING) ===================
 // Fetch all awards at once in parallel - MUCH faster!
 app.get("/api/awards/all", async (req, res) => {
+  console.log('🎯 /api/awards/all endpoint called');
   try {
     const now = Date.now();
     
@@ -867,67 +868,85 @@ app.get("/api/awards/all", async (req, res) => {
     const response = {};
     
     // MVP first (fast cheerio scraper - no RAM issues)
+    console.log('📊 Starting MVP scrape...');
     const mvpUrl = "https://www.rotowire.com/betting/nba/mvp-odds.php";
     const mvpData = await scrapeRotowireAwardTable(mvpUrl)
       .then(data => data.length ? data : scrapeRotowireFutures("MVP"));
     response.mvp = mvpData;
+    console.log('✅ MVP scraped:', mvpData.length, 'players');
     
-    // Batch 1: DPOY + ROTY (2 at a time to stay under 512 MB RAM)
-    const batch1 = [];
+    // SEQUENTIAL SCRAPING - One at a time to minimize RAM usage (< 512 MB)
+    // This is slower but more reliable on Render's free tier
     
+    // DPOY (1 of 4)
+    console.log('📊 Starting DPOY scrape (1/4)...');
     if (awardCache.dpoy.data && (now - awardCache.dpoy.timestamp) < CACHE_TTL) {
-      batch1.push(Promise.resolve({ award: 'dpoy', data: awardCache.dpoy.data }));
+      response.dpoy = awardCache.dpoy.data;
+      console.log('✅ DPOY from cache:', awardCache.dpoy.data.length, 'players');
     } else {
-      batch1.push(
-        scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/defensive-player-odds.php")
-          .then(data => ({ award: 'dpoy', data }))
-      );
+      try {
+        const dpoyData = await scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/defensive-player-odds.php");
+        response.dpoy = dpoyData;
+        awardCache.dpoy = { data: dpoyData, timestamp: now };
+        console.log('✅ DPOY scraped successfully:', dpoyData.length, 'players');
+      } catch (err) {
+        console.error('❌ DPOY scrape failed:', err.message);
+        response.dpoy = [];
+      }
     }
     
+    // ROTY (2 of 4)
+    console.log('📊 Starting ROTY scrape (2/4)...');
     if (awardCache.roty.data && (now - awardCache.roty.timestamp) < CACHE_TTL) {
-      batch1.push(Promise.resolve({ award: 'roty', data: awardCache.roty.data }));
+      response.roty = awardCache.roty.data;
+      console.log('✅ ROTY from cache:', awardCache.roty.data.length, 'players');
     } else {
-      batch1.push(
-        scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/rookie-odds.php")
-          .then(data => ({ award: 'roty', data }))
-      );
+      try {
+        const rotyData = await scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/rookie-odds.php");
+        response.roty = rotyData;
+        awardCache.roty = { data: rotyData, timestamp: now };
+        console.log('✅ ROTY scraped successfully:', rotyData.length, 'players');
+      } catch (err) {
+        console.error('❌ ROTY scrape failed:', err.message);
+        response.roty = [];
+      }
     }
     
-    const batch1Results = await Promise.all(batch1);
-    for (const result of batch1Results) {
-      response[result.award] = result.data;
-      if (result.award === 'dpoy') awardCache.dpoy = { data: result.data, timestamp: now };
-      if (result.award === 'roty') awardCache.roty = { data: result.data, timestamp: now };
-    }
-    
-    // Batch 2: Sixth Man + MIP (2 at a time to stay under 512 MB RAM)
-    const batch2 = [];
-    
+    // Sixth Man (3 of 4)
+    console.log('📊 Starting Sixth Man scrape (3/4)...');
     if (awardCache.sixthMan.data && (now - awardCache.sixthMan.timestamp) < CACHE_TTL) {
-      batch2.push(Promise.resolve({ award: 'sixthMan', data: awardCache.sixthMan.data }));
+      response.sixthMan = awardCache.sixthMan.data;
+      console.log('✅ Sixth Man from cache:', awardCache.sixthMan.data.length, 'players');
     } else {
-      batch2.push(
-        scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/sixth-man-odds.php")
-          .then(data => ({ award: 'sixthMan', data }))
-      );
+      try {
+        const sixthManData = await scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/sixth-man-odds.php");
+        response.sixthMan = sixthManData;
+        awardCache.sixthMan = { data: sixthManData, timestamp: now };
+        console.log('✅ Sixth Man scraped successfully:', sixthManData.length, 'players');
+      } catch (err) {
+        console.error('❌ Sixth Man scrape failed:', err.message);
+        response.sixthMan = [];
+      }
     }
     
+    // MIP (4 of 4)
+    console.log('📊 Starting MIP scrape (4/4)...');
     if (awardCache.mip.data && (now - awardCache.mip.timestamp) < CACHE_TTL) {
-      batch2.push(Promise.resolve({ award: 'mip', data: awardCache.mip.data }));
+      response.mip = awardCache.mip.data;
+      console.log('✅ MIP from cache:', awardCache.mip.data.length, 'players');
     } else {
-      batch2.push(
-        scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/improved-player-odds.php")
-          .then(data => ({ award: 'mip', data }))
-      );
+      try {
+        const mipData = await scrapeRotowireAwardTablePuppeteer("https://www.rotowire.com/betting/nba/improved-player-odds.php");
+        response.mip = mipData;
+        awardCache.mip = { data: mipData, timestamp: now };
+        console.log('✅ MIP scraped successfully:', mipData.length, 'players');
+      } catch (err) {
+        console.error('❌ MIP scrape failed:', err.message);
+        response.mip = [];
+      }
     }
     
-    const batch2Results = await Promise.all(batch2);
-    for (const result of batch2Results) {
-      response[result.award] = result.data;
-      if (result.award === 'sixthMan') awardCache.sixthMan = { data: result.data, timestamp: now };
-      if (result.award === 'mip') awardCache.mip = { data: result.data, timestamp: now };
-    }
-    
+    console.log('🎉 All awards complete, sending response');
     res.json(response);
   } catch (err) {
     console.error("❌ Error fetching all awards:", err.message);
