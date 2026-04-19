@@ -959,9 +959,13 @@ app.get("/api/awards/all", async (req, res) => {
 
 // (3) Puppeteer scraper for Rotowire's Webix-rendered award pages
 async function scrapeRotowireAwardTablePuppeteer(url) {
+  console.log('🔧 scrapeRotowireAwardTablePuppeteer called for:', url);
   try {
+    console.log('🔧 Getting shared browser...');
     const browser = await getSharedBrowser();
+    console.log('🔧 Browser obtained, creating new page...');
     const page = await browser.newPage();
+    console.log('🔧 New page created');
     
     try {
       await page.setUserAgent(
