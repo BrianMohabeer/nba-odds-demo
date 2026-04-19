@@ -974,7 +974,15 @@ async function scrapeRotowireAwardTablePuppeteer(url) {
       );
       await page.setViewport({ width: 2400, height: 900 });
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
-      await new Promise(r => setTimeout(r, 3000)); // Wait for dynamic content to load
+      await new Promise(r => setTimeout(r, 5000)); // Wait 5s for Webix to render (Render is slower than localhost)
+      
+      console.log('🔧 Page loaded, checking for Webix elements...');
+      const elementCheck = await page.evaluate(() => {
+        const nameElements = document.querySelectorAll("[column='0'] [role='gridcell']").length;
+        const headerElements = document.querySelectorAll(".webix_hcell").length;
+        return { nameElements, headerElements };
+      });
+      console.log('🔧 Found elements:', elementCheck);
 
     const results = await page.evaluate(() => {
       // --- Player names from column 0 ---
