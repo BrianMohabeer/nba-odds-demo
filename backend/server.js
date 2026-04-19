@@ -974,7 +974,7 @@ async function scrapeRotowireAwardTablePuppeteer(url) {
       );
       await page.setViewport({ width: 2400, height: 900 });
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
-      await new Promise(r => setTimeout(r, 5000)); // Wait 5s for Webix to render (Render is slower than localhost)
+      await new Promise(r => setTimeout(r, 8000)); // Wait 8s for Webix to render (Render is slower than localhost)
       
       console.log('🔧 Page loaded, checking for Webix elements...');
       const elementCheck = await page.evaluate(() => {
